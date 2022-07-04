@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# JAVA
+ACE_VERSION="0.0.10"
+MVN_HOME="$HOME/.m2/repository"
+JAVA_8="/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.332.b09-1.fc36.x86_64"
+export LD_LIBRARY_PATH="$JAVA_8/jre/lib/amd64/server:$LD_LIBRARY_PATH"
+export PATH="$JAVA_8/bin:$PATH"
+export CLASSPATH="$MVN_HOME/edlab/eda/ace/$ACE_VERSION/ace-$ACE_VERSION-jar-with-dependencies.jar"

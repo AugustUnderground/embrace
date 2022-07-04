@@ -1,0 +1,59 @@
+name:                embrace
+version:             0.1.0.0
+github:              "augustunderground/embrace"
+license:             BSD3
+author:              "Yannick Uhlmann"
+maintainer:          "augustunderground@protonmail.com"
+copyright:           "2022 Yannick Uhlmann"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/augustunderground/embrace#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- text
+- bytestring
+- process
+- directory
+- containers
+- inline-java
+- jvm
+- jni
+
+library:
+  source-dirs: src
+
+executables:
+  embrace-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - embrace
+    when:
+    - condition: false
+      other-modules:     Paths_embrace
+
+tests:
+  embrace-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - embrace

@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "embrace:lib"
+
+    - path: "./app/Main.hs"
+      component: "embrace:exe:embrace-exe"
+
+    - path: "./app/Paths_edelwace.hs"
+      component: "embrace:exe:embrace-exe"
+
+    - path: "./test"
+      component: "embrace:test:embrace-test"

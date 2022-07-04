@@ -1,0 +1,83 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           embrace
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/augustunderground/embrace#readme>
+homepage:       https://github.com/augustunderground/embrace#readme
+bug-reports:    https://github.com/augustunderground/embrace/issues
+author:         Yannick Uhlmann
+maintainer:     augustunderground@protonmail.com
+copyright:      2022 Yannick Uhlmann
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/augustunderground/embrace
+
+library
+  exposed-modules:
+      ACE
+      ACE.Internal
+  other-modules:
+      Paths_embrace
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , containers
+    , directory
+    , inline-java
+    , jni
+    , jvm
+    , process
+    , text
+  default-language: Haskell2010
+
+executable embrace-exe
+  main-is: Main.hs
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , containers
+    , directory
+    , embrace
+    , inline-java
+    , jni
+    , jvm
+    , process
+    , text
+  default-language: Haskell2010
+
+test-suite embrace-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_embrace
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , containers
+    , directory
+    , embrace
+    , inline-java
+    , jni
+    , jvm
+    , process
+    , text
+  default-language: Haskell2010
