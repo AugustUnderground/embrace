@@ -107,7 +107,7 @@ randomSizing :: Env -> IO (M.Map String Float)
 randomSizing Env{..} = AC.randomSizing jEnvironment
 
 -- | Random Sizing sample for a pool of environments
-randomSizing' :: [Env] -> IO [M.Map String Float]
+randomSizing' :: EnvPool -> IO [M.Map String Float]
 randomSizing' []     = pure []
 randomSizing' (e:es) = do
     sizing  <- randomSizing  e
