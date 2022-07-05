@@ -78,6 +78,9 @@ initialSizing :: SEOEnv -> IO (Map String Float)
 
 -- | Random sizing paramters for given Environment
 randomSizing :: SEOEnv -> IO (Map String Float)
+
+-- | Current sizing of the Environment
+currentSizing :: SEOEnv -> IO (Map String Float)
 instance Language.Java.Unsafe.Coercible ACE.Internal.ACEnv
 instance Language.Java.Unsafe.Coercible ACE.Internal.SEOEnv
 instance Language.Java.Unsafe.Coercible ACE.Internal.Pool
@@ -168,17 +171,32 @@ withACE :: IO a -> IO a
 -- | Random Sizing sample
 randomSizing :: Env -> IO (Map String Float)
 
+-- | Current Sizing of Environment
+currentSizing :: Env -> IO (Map String Float)
+
 -- | Evaluate circuit performance
 evaluate :: Env -> Map String Float -> IO (Map String Float)
 
 -- | Construct a number of environments for parallel execution
 mkEnvs :: CKT -> PDK -> Int -> IO EnvPool
 
+-- | Performance Parameters for a pool of environments
+performanceParameters' :: EnvPool -> [[String]]
+
+-- | Sizing Parameters for a pool of environments
+sizingParameters' :: EnvPool -> [[String]]
+
+-- | Simulation analyses available for a pool of environments
+analyses' :: EnvPool -> [[String]]
+
 -- | Initial Sizing for a pool of environments
 initSizing' :: EnvPool -> [Map String Float]
 
 -- | Random Sizing sample for a pool of environments
 randomSizing' :: [Env] -> IO [Map String Float]
+
+-- | Current Sizing for Environments in Pool
+currentSizing' :: EnvPool -> IO [Map String Float]
 
 -- | Evaluate circuit performance in parallel
 evaluate' :: EnvPool -> [Map String Float] -> IO [Map String Float]
