@@ -32,11 +32,37 @@ ACEnv :: J ('Class "edlab.eda.ace.AnalogCircuitEnvironment") -> ACEnv
 newtype SEOEnv
 SEOEnv :: J ('Class "edlab.eda.ace.SingleEndedOpampEnvironment") -> SEOEnv
 
+-- | Java AC²E Environment Pool
+newtype Pool
+Pool :: J ('Class "edlab.eda.ace.EnvironmentPool") -> Pool
+
 -- | Contruct ACE Object
 mkEnv :: String -> String -> String -> IO SEOEnv
 
--- | Simulate Environment with given sizing parameters
-simulate :: SEOEnv -> Map String Float -> IO (Map String Float)
+-- | Create Empty ACE Pool
+mkPool :: IO Pool
+
+-- | Available Simulation Analyses
+analyses :: SEOEnv -> IO [String]
+
+-- | Set sizing paramters in Environment
+setSizing :: SEOEnv -> Map String Float -> IO ()
+
+-- | Get current circuit performance
+currentPerformance :: SEOEnv -> IO (Map String Float)
+
+-- | Simulate Environment with given analyses blacklist, corners and sizing
+--   parameters
+simulate' :: SEOEnv -> [String] -> [String] -> Map String Float -> IO (Map String Float)
+
+-- | Simulate Environment for default corners with empty black list
+evaluate :: SEOEnv -> Map String Float -> IO (Map String Float)
+
+-- | Add a list of Environments to Pool
+poolAdd :: Pool -> [SEOEnv] -> IO Pool
+
+-- | Simulate list of Environments in parallel
+evaluatePool :: [SEOEnv] -> [Map String Float] -> IO [Map String Float]
 
 -- | Get available performance parameters
 performanceIds :: SEOEnv -> IO [String]
@@ -54,6 +80,7 @@ initialSizing :: SEOEnv -> IO (Map String Float)
 randomSizing :: SEOEnv -> IO (Map String Float)
 instance Language.Java.Unsafe.Coercible ACE.Internal.ACEnv
 instance Language.Java.Unsafe.Coercible ACE.Internal.SEOEnv
+instance Language.Java.Unsafe.Coercible ACE.Internal.Pool
 
 
 -- | AC²E Bindings
@@ -115,7 +142,10 @@ GPDK180 :: PDK
 
 -- | Analog Circuit Characterization Environment
 data Env
-Env :: [String] -> [String] -> (Map String Float -> IO (Map String Float)) -> Map String Float -> IO (Map String Float) -> Env
+Env :: SEOEnv -> [String] -> [String] -> [String] -> Map String Float -> Env
+
+-- | Raw ACE Java Object
+[jEnvironment] :: Env -> SEOEnv
 
 -- | List of Available Performance Parameters
 [performanceParameters] :: Env -> [String]
@@ -123,20 +153,35 @@ Env :: [String] -> [String] -> (Map String Float -> IO (Map String Float)) -> Ma
 -- | List of Available Sizing Parameters
 [sizingParameters] :: Env -> [String]
 
--- | Simulate given sizing
-[simulate] :: Env -> Map String Float -> IO (Map String Float)
+-- | List of available simulation analyses (blacklistable)
+[analyses] :: Env -> [String]
 
 -- | Initial Sizing
 [initSizing] :: Env -> Map String Float
-
--- | Random Sizing
-[randomSizing] :: Env -> IO (Map String Float)
 
 -- | Create a new AC²E
 mkEnv :: CKT -> PDK -> IO Env
 
 -- | IO Monad Wrapper for Java Communication
 withACE :: IO a -> IO a
+
+-- | Random Sizing sample
+randomSizing :: Env -> IO (Map String Float)
+
+-- | Evaluate circuit performance
+evaluate :: Env -> Map String Float -> IO (Map String Float)
+
+-- | Construct a number of environments for parallel execution
+mkEnvs :: CKT -> PDK -> Int -> IO [Env]
+
+-- | Initial Sizing for a pool of environments
+initSizing' :: [Env] -> [Map String Float]
+
+-- | Random Sizing sample for a pool of environments
+randomSizing' :: [Env] -> IO [Map String Float]
+
+-- | Evaluate circuit performance in parallel
+evaluate' :: [Env] -> [Map String Float] -> IO [Map String Float]
 instance GHC.Classes.Eq ACE.CKT
 instance GHC.Classes.Eq ACE.PDK
 instance GHC.Show.Show ACE.PDK
