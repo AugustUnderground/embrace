@@ -243,3 +243,22 @@ randomSizing env = do
 }
                         |] >>= reify
     pure . M.fromList $ zipWith map' keys vals
+
+-- | Current sizing of the Environment
+currentSizing :: SEOEnv -> IO (M.Map String Float)
+currentSizing env = do
+    keys :: [T.Text] <- [java|
+{
+    java.util.Map<String,Double> sizing = $env.getParameterValues();
+    String [] keys = sizing.keySet().toArray(new java.lang.String[sizing.size()]);
+    return keys;
+}
+                        |] >>= reify
+    vals :: [Double] <- [java|
+{
+    java.util.Map<String,Double> sizing = $env.getParameterValues();
+    Double [] vals = sizing.values().toArray(new java.lang.Double[sizing.size()]);
+    return vals;
+}
+                        |] >>= reify
+    pure . M.fromList $ zipWith map' keys vals

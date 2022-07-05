@@ -12,10 +12,15 @@ module ACE ( CKT (..)
            , mkEnv 
            , withACE
            , randomSizing
+           , currentSizing
            , evaluate
            , mkEnvs
+           , performanceParameters'
+           , sizingParameters'
+           , analyses'
            , initSizing'
            , randomSizing'
+           , currentSizing'
            , evaluate'
            ) where
 
@@ -71,6 +76,22 @@ mkEnvs ckt pdk num = do
     envs <- mkEnvs ckt pdk $ pred num
     pure $ env:envs
 
+-- | Performance Parameters for a pool of environments
+performanceParameters' :: EnvPool -> [[String]]
+performanceParameters' = map performanceParameters
+
+-- | Sizing Parameters for a pool of environments
+sizingParameters' :: EnvPool -> [[String]]
+sizingParameters' = map sizingParameters
+
+-- | Simulation analyses available for a pool of environments
+analyses' :: EnvPool -> [[String]]
+analyses' = map analyses
+
+-- | Initial Sizing for a pool of environments
+initSizing' :: EnvPool -> [M.Map String Float]
+initSizing' = map initSizing
+
 -- | Evaluate circuit performance
 evaluate :: Env -> M.Map String Float -> IO (M.Map String Float)
 evaluate Env{..} = AC.evaluate jEnvironment
@@ -85,16 +106,24 @@ evaluate' envs = AC.evaluatePool jenvs
 randomSizing :: Env -> IO (M.Map String Float)
 randomSizing Env{..} = AC.randomSizing jEnvironment
 
--- | Initial Sizing for a pool of environments
-initSizing' :: EnvPool -> [M.Map String Float]
-initSizing' = map initSizing
-
 -- | Random Sizing sample for a pool of environments
 randomSizing' :: [Env] -> IO [M.Map String Float]
 randomSizing' []     = pure []
 randomSizing' (e:es) = do
     sizing  <- randomSizing  e
     sizings <- randomSizing' es
+    pure $ sizing:sizings
+
+-- | Current Sizing of Environment
+currentSizing :: Env -> IO (M.Map String Float)
+currentSizing Env{..} = AC.currentSizing jEnvironment
+
+-- | Current Sizing for Environments in Pool
+currentSizing' :: EnvPool -> IO [M.Map String Float]
+currentSizing' []     = pure []
+currentSizing' (e:es) = do
+    sizing  <- currentSizing  e
+    sizings <- currentSizing' es
     pure $ sizing:sizings
 
 -- | IO Monad Wrapper for Java Communication
