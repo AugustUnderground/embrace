@@ -31,6 +31,7 @@ imports "java.util.HashSet"
 imports "java.util.HashMap"
 imports "edlab.eda.ace.AnalogCircuitEnvironment"
 imports "edlab.eda.ace.SingleEndedOpampEnvironment"
+imports "edlab.eda.ace.EnvironmentPool"
 
 -- | Convert coerced map from
 map' :: T.Text -> Double -> (String, Float)
@@ -62,6 +63,10 @@ newtype ACEnv = ACEnv (J ('Class "edlab.eda.ace.AnalogCircuitEnvironment"))
 newtype SEOEnv = SEOEnv (J ('Class "edlab.eda.ace.SingleEndedOpampEnvironment"))
     deriving Coercible
 
+-- | Java AC²E Environment Pool
+newtype Pool = Pool (J ('Class "edlab.eda.ace.EnvironmentPool"))
+    deriving Coercible
+
 -- | Contruct ACE Object
 mkEnv :: String -> String -> String -> IO SEOEnv
 mkEnv simPath' cktPath' pdkPath' = do
@@ -70,18 +75,40 @@ mkEnv simPath' cktPath' pdkPath' = do
     pdkPath <- reflect [ T.pack $ pdkPath' ]
     [java| SingleEndedOpampEnvironment.get($simPath, $cktPath, $pdkPath) |]
 
--- | Simulate Environment with given sizing parameters
-simulate :: SEOEnv -> M.Map String Float -> IO (M.Map String Float)
-simulate env sizing = do 
-    keys <- reflect . M.keys  . M.mapKeys T.pack   $ sizing
-    vals <- reflect . M.elems . M.map float2Double $ sizing
-    _  <- [java|
+-- | Create Empty ACE Pool
+mkPool :: IO Pool
+mkPool = [java| new EnvironmentPool() |]
+
+-- | Available Simulation Analyses
+analyses :: SEOEnv -> IO [String]
+analyses env = do
+    as :: [T.Text] <- [java|
+{
+    java.util.Set<String> as = $env.getAnalyses();
+    String [] analyses = as.toArray(new java.lang.String[as.size()]);
+    return analyses;
+}
+                      |] >>= reify
+    pure $ map T.unpack as
+
+-- | Set sizing paramters in Environment
+setSizing :: SEOEnv -> M.Map String Float -> IO ()
+setSizing env sizing = do
+    keys  <- reflect . M.keys  . M.mapKeys T.pack   $ sizing
+    vals  <- reflect . M.elems . M.map float2Double $ sizing
+    _ <- [java|
 {
     for (int i = 0; i < $keys.length; i++) 
         { $env.set($keys[i], $vals[i]); }
-    return $env.simulate();
+
+    return 0.0;
 }
-    |] :: IO ACEnv
+         |] :: IO Double
+    pure ()
+
+-- | Get current circuit performance
+currentPerformance :: SEOEnv -> IO (M.Map String Float)
+currentPerformance env = do
     keys' :: [T.Text] <- [java| 
 {
     java.util.Map<String, Double> res = $env.getPerformanceValues();
@@ -97,6 +124,59 @@ simulate env sizing = do
 }
                          |] >>= reify
     pure . M.fromList $ zipWith map' keys' vals'
+
+-- | Simulate Environment with given analyses blacklist, corners and sizing
+-- parameters
+simulate' :: SEOEnv -> [String] -> [String] -> M.Map String Float 
+          -> IO (M.Map String Float)
+simulate' env blackList corners sizing = do 
+    setSizing env sizing
+
+    black <- reflect $ map T.pack blackList
+    corns <- reflect $ map T.pack corners
+    _  <- [java|
+{
+    java.util.HashSet<String> blackList = new java.util.HashSet<>();
+    java.util.HashSet<String> corners   = new java.util.HashSet<>();
+
+    for (int i = 0; i < $black.length; i++) 
+        { blackList.add($black[i]); }
+    for (int i = 0; i < $corns.length; i++) 
+        { corners.add($corns[i]); }
+
+    return $env.simulate();
+}
+          |] :: IO ACEnv
+    currentPerformance env
+
+-- | Simulate Environment for default corners with empty black list
+evaluate :: SEOEnv -> M.Map String Float -> IO (M.Map String Float)
+evaluate env = simulate' env [] []
+
+-- | Add a list of Environments to Pool
+poolAdd :: Pool -> [SEOEnv] -> IO Pool
+poolAdd pool []         = pure pool
+poolAdd pool (env:envs) = do
+    _ <- [java|
+{
+    $pool.add($env);
+    return $pool;
+}
+         |] :: IO Pool
+    poolAdd pool envs
+
+-- | Simulate list of Environments in parallel
+evaluatePool :: [SEOEnv] -> [M.Map String Float] -> IO [M.Map String Float]
+evaluatePool envs sizings = do
+    mapM_ (uncurry setSizing) $ zip envs sizings
+    pool <- mkPool >>= (flip poolAdd envs)
+    _ <- [java|
+{
+    $pool.execute();
+    return 0.0;
+}
+         |] :: IO Double
+    mapM currentPerformance envs
 
 -- | Get available performance parameters
 performanceIds :: SEOEnv -> IO [String]

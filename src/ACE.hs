@@ -11,6 +11,12 @@ module ACE ( CKT (..)
            , Env (..) 
            , mkEnv 
            , withACE
+           , randomSizing
+           , evaluate
+           , mkEnvs
+           , initSizing'
+           , randomSizing'
+           , evaluate'
            ) where
 
 import qualified ACE.Internal          as AC
@@ -20,16 +26,16 @@ import           Data.ByteString.Char8       (pack)
 import           Language.Java               (withJVM)
 
 -- | Analog Circuit Characterization Environment
-data Env = Env { -- | List of Available Performance Parameters
-                 performanceParameters :: [String]
+data Env = Env { -- | Raw ACE Java Object
+                 jEnvironment          :: AC.SEOEnv
+                 -- | List of Available Performance Parameters
+               , performanceParameters :: [String]
                  -- | List of Available Sizing Parameters
                , sizingParameters      :: [String]
-                 -- | Simulate given sizing
-               , simulate              :: M.Map String Float -> IO (M.Map String Float)
+                 -- | List of available simulation analyses (blacklistable)
+               , analyses              :: [String]
                  -- | Initial Sizing
                , initSizing            :: M.Map String Float
-                 -- | Random Sizing
-               , randomSizing          :: IO (M.Map String Float)
                }
 
 -- | Create a new AC²E
@@ -40,18 +46,54 @@ mkEnv ckt pdk = do
         cktPath = homeDir ++ "/.ace/" ++ show pdk ++ "/" ++ show ckt
         pdkPath = homeDir ++ "/.ace/" ++ show pdk ++ "/pdk"
 
-    env <- AC.mkEnv simPath cktPath pdkPath
+    jenv <- AC.mkEnv simPath cktPath pdkPath
 
-    performanceIds'   <- AC.performanceIds   env
-    sizingParameters' <- AC.sizingParameters env
-    initSizing'       <- AC.initialSizing    env
+    pid  <- AC.performanceIds   jenv
+    sps  <- AC.sizingParameters jenv
+    iss  <- AC.initialSizing    jenv
+    anl  <- AC.analyses         jenv
 
-    pure $ Env { performanceParameters = performanceIds'
-               , sizingParameters      = sizingParameters'
-               , simulate              = AC.simulate env
-               , initSizing            = initSizing'
-               , randomSizing          = AC.randomSizing env
+    pure $ Env { jEnvironment          = jenv
+               , performanceParameters = pid
+               , sizingParameters      = sps
+               , analyses              = anl
+               , initSizing            = iss
                }
+                 
+-- | Construct a number of environments for parallel execution
+mkEnvs :: CKT -> PDK -> Int -> IO [Env]
+mkEnvs _   _   0   = pure []
+mkEnvs ckt pdk num = do
+    env  <- mkEnv ckt pdk
+    envs <- mkEnvs ckt pdk $ pred num
+    pure $ env:envs
+
+-- | Evaluate circuit performance
+evaluate :: Env -> M.Map String Float -> IO (M.Map String Float)
+evaluate Env{..} = AC.evaluate jEnvironment
+
+-- | Evaluate circuit performance in parallel
+evaluate' :: [Env] -> [M.Map String Float] -> IO [M.Map String Float]
+evaluate' envs = AC.evaluatePool jenvs
+  where
+    jenvs = map jEnvironment envs
+
+-- | Random Sizing sample
+randomSizing :: Env -> IO (M.Map String Float)
+randomSizing Env{..} = AC.randomSizing jEnvironment
+
+-- | Initial Sizing for a pool of environments
+initSizing' :: [Env] -> [M.Map String Float]
+initSizing' = map initSizing
+
+-- | Random Sizing sample for a pool of environments
+randomSizing' :: [Env] -> IO [M.Map String Float]
+randomSizing' []     = pure []
+randomSizing' (e:es) = do
+    sizing  <- randomSizing  e
+    sizings <- randomSizing' es
+    pure $ sizing:sizings
+
 -- | IO Monad Wrapper for Java Communication
 withACE :: IO a -> IO a
 withACE a = do
