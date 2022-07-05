@@ -172,16 +172,16 @@ randomSizing :: Env -> IO (Map String Float)
 evaluate :: Env -> Map String Float -> IO (Map String Float)
 
 -- | Construct a number of environments for parallel execution
-mkEnvs :: CKT -> PDK -> Int -> IO [Env]
+mkEnvs :: CKT -> PDK -> Int -> IO EnvPool
 
 -- | Initial Sizing for a pool of environments
-initSizing' :: [Env] -> [Map String Float]
+initSizing' :: EnvPool -> [Map String Float]
 
 -- | Random Sizing sample for a pool of environments
 randomSizing' :: [Env] -> IO [Map String Float]
 
 -- | Evaluate circuit performance in parallel
-evaluate' :: [Env] -> [Map String Float] -> IO [Map String Float]
+evaluate' :: EnvPool -> [Map String Float] -> IO [Map String Float]
 instance GHC.Classes.Eq ACE.CKT
 instance GHC.Classes.Eq ACE.PDK
 instance GHC.Show.Show ACE.PDK

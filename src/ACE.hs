@@ -38,6 +38,9 @@ data Env = Env { -- | Raw ACE Java Object
                , initSizing            :: M.Map String Float
                }
 
+-- | Syntactic Sugar for Environment Pool
+type EnvPool = [Env]
+
 -- | Create a new AC²E
 mkEnv :: CKT -> PDK -> IO Env
 mkEnv ckt pdk = do
@@ -61,7 +64,7 @@ mkEnv ckt pdk = do
                }
                  
 -- | Construct a number of environments for parallel execution
-mkEnvs :: CKT -> PDK -> Int -> IO [Env]
+mkEnvs :: CKT -> PDK -> Int -> IO EnvPool
 mkEnvs _   _   0   = pure []
 mkEnvs ckt pdk num = do
     env  <- mkEnv ckt pdk
@@ -73,7 +76,7 @@ evaluate :: Env -> M.Map String Float -> IO (M.Map String Float)
 evaluate Env{..} = AC.evaluate jEnvironment
 
 -- | Evaluate circuit performance in parallel
-evaluate' :: [Env] -> [M.Map String Float] -> IO [M.Map String Float]
+evaluate' :: EnvPool -> [M.Map String Float] -> IO [M.Map String Float]
 evaluate' envs = AC.evaluatePool jenvs
   where
     jenvs = map jEnvironment envs
@@ -83,7 +86,7 @@ randomSizing :: Env -> IO (M.Map String Float)
 randomSizing Env{..} = AC.randomSizing jEnvironment
 
 -- | Initial Sizing for a pool of environments
-initSizing' :: [Env] -> [M.Map String Float]
+initSizing' :: EnvPool -> [M.Map String Float]
 initSizing' = map initSizing
 
 -- | Random Sizing sample for a pool of environments
